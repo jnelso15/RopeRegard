@@ -6,8 +6,8 @@
             "request": "launch",
             "cwd": "${workspaceRoot}",
             "name": "PlatformIO Debugger",
-            "target": "c:/Users/Brian/Documents/RopeRegard/RopeRegard/.pioenvs/feather32u4/firmware.elf",
-            "gdbpath": "C:/Users/Brian/.platformio/penv/Scripts/piodebuggdb",
+            "target": "/Users/aaronphillips/Climbing/RopeRegard/.pioenvs/feather32u4/firmware.elf",
+            "gdbpath": "/Users/aaronphillips/.platformio/penv/bin/piodebuggdb",
             "autorun": [ "source .pioinit" ]
         }
     ]
