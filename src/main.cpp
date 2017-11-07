@@ -77,21 +77,23 @@ Serial.print("RFM69 radio @");  Serial.print((int)RF69_FREQ);  Serial.println(" 
 
 void loop() {
   // For a set of NeoPixels the first NeoPixel is 0, second is 1, all the way up to the count of pixels minus one.
-  if(digitalRead(kButtonOnePin)){
-         // pixels.Color takes RGB values, from 0,0,0 up to 255,255,255
+
+  if(digitalRead(kButtonOnePin)) {
     pixels.setPixelColor(0, pixels.Color(0,150,0)); // Moderately bright green color.
     
         pixels.show(); // This sends the updated pixel color to the hardware.
   } else {
-   // pixels.Color takes RGB values, from 0,0,0 up to 255,255,255
-   pixels.setPixelColor(0, pixels.Color(0,0,150)); // Moderately bright green color.
-   
-       pixels.show(); // This sends the updated pixel color to the hardware.
+    pixels.setPixelColor(0, pixels.Color(0,0,150)); // Moderately bright green color.
+    
+        pixels.show(); // This sends the updated pixel color to the hardware.
   }
+  
   if (rf69.waitAvailableTimeout(100)) {
     // Should be a message for us now   
     uint8_t buf[RH_RF69_MAX_MESSAGE_LEN];
     uint8_t len = sizeof(buf);
+    
+
     
     if (! rf69.recv(buf, &len)) {
       Serial.println("Receive failed");
@@ -102,6 +104,16 @@ void loop() {
     buf[len] = 0;
     
     Serial.print("Got: "); Serial.println((char*)buf);
+    if((String((char*)buf)).indexOf("A") != -1) {
+      pixels.setPixelColor(0, pixels.Color(150,0,100)); // Moderately bright green color.
+      
+      pixels.show(); // This sends the updated pixel color to the hardware.
+      delay(delayval);
+    } else {
+      pixels.setPixelColor(0, pixels.Color(0,0,150)); // Moderately bright green color.
+      
+          pixels.show(); // This sends the updated pixel color to the hardware.
+    }
     Serial.print("RSSI: "); Serial.println(rf69.lastRssi(), DEC);
   }
 
