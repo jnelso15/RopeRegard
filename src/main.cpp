@@ -1,9 +1,14 @@
 #include <Arduino.h>
-
+bool ledMode = false;
 void setup() {
-    // put your setup code here, to run once:
+    pinMode(LED_BUILTIN, OUTPUT);
+
 }
 
 void loop() {
-    // put your main code here, to run repeatedly:
+    
+    ledMode = !ledMode;
+
+    digitalWrite(LED_BUILTIN, ledMode);
+    delay(500);
 }
