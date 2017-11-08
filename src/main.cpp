@@ -14,7 +14,7 @@
 
 // How many NeoPixels are attached to the Arduino?
 #define NUMPIXELS      1
-#define kButtonOnePin  6
+#define kButtonOnePin  A2
 
 // Change to 434.0 or other frequency, must match RX's freq!
 #define RF69_FREQ 434.0
@@ -41,7 +41,7 @@ int delayval = 500; // delay for half a second
 
 void setup() {
     Serial.begin(115200);
-    while (!Serial) { delay(1); } // wait until serial console is open, remove if not tethered to computer
+    //while (!Serial) { delay(1); } // wait until serial console is open, remove if not tethered to computer
   
   pixels.begin(); // This initializes the NeoPixel library.
   pinMode(kButtonOnePin, INPUT);
@@ -69,6 +69,7 @@ void setup() {
   uint8_t key[] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
     0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
 rf69.setEncryptionKey(key);
+rf69.setTxPower(20, true);
 
 Serial.print("RFM69 radio @");  Serial.print((int)RF69_FREQ);  Serial.println(" MHz");
 
