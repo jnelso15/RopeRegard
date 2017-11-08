@@ -9,19 +9,18 @@
 #endif
 
 // Which pin on the Arduino is connected to the NeoPixels?
-// On a Trinket or Gemma we suggest changing this to 1
 #define PIN            5
 
 // How many NeoPixels are attached to the Arduino?
 #define NUMPIXELS      2
 
-
+//Buttons
 #define kButtonOnePin   A2
 #define kButtonTwoPin   A3
 #define kButtonThreePin A4
 #define kButtonFourPin  A5
 
-// Change to 434.0 or other frequency, must match RX's freq!
+// 434 is our frequency
 #define RF69_FREQ 434.0
 
 //ADAFRUIT FEATHER
@@ -41,41 +40,45 @@
 RH_RF69 rf69(RFM69_CS, RFM69_INT);
 
 // When we setup the NeoPixel library, we tell it how many pixels, and which pin to use to send signals.
-// Note that for older NeoPixel strips you might need to change the third parameter--see the strandtest
-// example for more information on possible values.
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
 int delayval = 500; // delay for half a second
 
 void setup() {
     Serial.begin(115200);
-    //while (!Serial) { delay(1); } // wait until serial console is open, remove if not tethered to computer
+    //while (!Serial) { delay(1); } // wait until serial console is open, remove if not teathered to computer
   
   pixels.begin(); // This initializes the NeoPixel library.
-  pinMode(kButtonOnePin, INPUT);
 
+  //Buttons
+  pinMode(kButtonOnePin, INPUT);
+  pinMode(kButtonTwoPin, INPUT);
+  pinMode(kButtonThreePin, INPUT);
+  pinMode(kButtonFourPin, INPUT);
+
+  //Radio
   Serial.println("Feather RFM69 RX/TX Test!");
   
-    // manual reset
-    digitalWrite(RFM69_RST, HIGH);
-    delay(10);
-    digitalWrite(RFM69_RST, LOW);
-    delay(10);
+  // manual reset
+  digitalWrite(RFM69_RST, HIGH);
+  delay(10);
+  digitalWrite(RFM69_RST, LOW);
+  delay(10);
     
-    if (!rf69.init()) {
-      Serial.println("RFM69 radio init failed");
-      while (1);
+  if (!rf69.init()) {
+    Serial.println("RFM69 radio init failed");
+    while (1);
     }
-    Serial.println("RFM69 radio init OK!");
+  Serial.println("RFM69 radio init OK!");
     
-    // Defaults after init are 434.0MHz, modulation GFSK_Rb250Fd250, +13dbM (for low power module)
-    // No encryption
-    if (!rf69.setFrequency(RF69_FREQ)) {
-      Serial.println("setFrequency failed");
-    }
-    // The encryption key has to be the same as the one in the server
-  uint8_t key[] = { 0xAF, 0xDD, 0xFF, 0xAF, 0xDA, 0x0F, 0xD3, 0xC7,
-    0xC3, 0x3F, 0x5E, 0x2F, 0x1C, 0x5E, 0x55, 0x89};
+  // Defaults after init are 434.0MHz, modulation GFSK_Rb250Fd250, +13dbM (for low power module)
+  // No encryption
+  if (!rf69.setFrequency(RF69_FREQ)) {
+    Serial.println("setFrequency failed");
+  }
+// The encryption key has to be the same as the one in the server
+uint8_t key[] = { 0xAF, 0xDD, 0xFF, 0xAF, 0xDA, 0x0F, 0xD3, 0xC7,
+  0xC3, 0x3F, 0x5E, 0x2F, 0x1C, 0x5E, 0x55, 0x89};
 rf69.setEncryptionKey(key);
 
 // Antenna Power Level
@@ -87,7 +90,6 @@ Serial.print("RFM69 radio @");  Serial.print((int)RF69_FREQ);  Serial.println(" 
 }
 
 void loop() {
-  // For a set of NeoPixels the first NeoPixel is 0, second is 1, all the way up to the count of pixels minus one.
 
   //TRANSMITER
   if(digitalRead(kButtonOnePin)) {
@@ -104,7 +106,7 @@ void loop() {
 
 
     pixels.setPixelColor(0, pixels.Color(150,0,100)); // Purple
-    pixels.show(); // This sends the updated pixel color to the hardware.
+    pixels.show(); 
   } else if (digitalRead(kButtonTwoPin)) {
     Serial.println("Button B pressed!");
     
@@ -117,7 +119,7 @@ void loop() {
     rf69.waitPacketSent();
 
     pixels.setPixelColor(1, pixels.Color(0,66,37)); // British Racing Green
-    pixels.show(); // This sends the updated pixel color to the hardware.
+    pixels.show(); 
     delay(delayval);
   } else if (digitalRead(kButtonTwoPin)) {
     Serial.println("Button C pressed!");
@@ -131,7 +133,7 @@ void loop() {
     rf69.waitPacketSent();
 
     pixels.setPixelColor(1, pixels.Color(255,246,0)); // Yellow.
-    pixels.show(); // This sends the updated pixel color to the hardware.
+    pixels.show();
     delay(delayval);
   } else if (digitalRead(kButtonTwoPin)) {
     Serial.println("Button D pressed!");
@@ -145,13 +147,13 @@ void loop() {
     rf69.waitPacketSent();
 
     pixels.setPixelColor(1, pixels.Color(42,82,190)); // Moderately bright green color.
-    pixels.show(); // This sends the updated pixel color to the hardware.
+    pixels.show(); 
     delay(delayval);
   } else {
     
 
     pixels.setPixelColor(0, pixels.Color(0,0,0)); // OFF
-    pixels.show(); // This sends the updated pixel color to the hardware.
+    pixels.show(); 
   }
   
   if (rf69.waitAvailableTimeout(100)) {
@@ -163,7 +165,7 @@ void loop() {
     
 
     //RECIEVE
-    if (! rf69.recv(buf, &len)) {
+    if (!rf69.recv(buf, &len)) {
       Serial.println("Receive failed");
       return;
     }
