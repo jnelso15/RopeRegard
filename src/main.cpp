@@ -29,20 +29,20 @@
 
 // 434 is our frequency
 #define RF69_FREQ 434.0
-/*
+
 //ADAFRUIT FEATHER
 #if defined(__AVR_ATmega32U4__) // Feather 32u4 w/Radio
 #define RFM69_CS 8
 #define RFM69_INT 7
 #define RFM69_RST 4
 #endif
-*/
 
+/*
 //FEATHERWING
 #define RFM69_CS 10  // "B"
 #define RFM69_RST 11 // "A"
 #define RFM69_INT 2  // "SDA" (only SDA/SCL/RX/TX have IRQ!)
-
+*/
 // Singleton instance of the radio driver
 RH_RF69 rf69(RFM69_CS, RFM69_INT);
 
