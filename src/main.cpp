@@ -3,6 +3,7 @@
 #include <RH_RF69.h>
 #include <Wire.h>
 #include <Adafruit_NeoPixel.h>
+#include <Adafruit_SleepyDog.h>
 
 #ifdef __AVR__
 #include <avr/power.h>
@@ -16,15 +17,15 @@
 
 #define VBATPIN A9
 
-
 //Buttons
 #define kButtonOnePin A2
 #define kButtonTwoPin A3
 #define kButtonThreePin A4
 #define kButtonFourPin A5
 
-#define delayVal 500
-#define sleepTimer 50000
+#define kDelayVal 500
+#define kSleepDelay 300000
+#define kRadioSleepDelay 350000
 
 // 434 is our frequency
 #define RF69_FREQ 434.0
@@ -38,9 +39,9 @@
 */
 
 //FEATHERWING
-#define RFM69_CS  10   // "B"
-#define RFM69_RST 11   // "A"
-#define RFM69_INT 2    // "SDA" (only SDA/SCL/RX/TX have IRQ!)
+#define RFM69_CS 10  // "B"
+#define RFM69_RST 11 // "A"
+#define RFM69_INT 2  // "SDA" (only SDA/SCL/RX/TX have IRQ!)
 
 // Singleton instance of the radio driver
 RH_RF69 rf69(RFM69_CS, RFM69_INT);
@@ -51,6 +52,8 @@ Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ80
 unsigned long receiveTimer = 0;
 unsigned long transmitTimer = 0;
 unsigned long voltageTimer = 0;
+unsigned long currentTime = 0;
+bool isInSleep = false;
 
 void setup()
 {
@@ -99,156 +102,173 @@ void setup()
   Serial.print("RFM69 radio @");
   Serial.print((int)RF69_FREQ);
   Serial.println(" MHz");
-  receiveTimer = millis();
-  transmitTimer = millis();
-  voltageTimer = millis();
+  currentTime = millis();
+  receiveTimer = currentTime;
+  transmitTimer = currentTime;
+  voltageTimer = currentTime;
 }
 
 void loop()
 {
-  if(millis() - voltageTimer > 5000) {
+  currentTime = millis();
+  if (currentTime - voltageTimer > 5000)
+  {
     float measuredvbat = analogRead(VBATPIN);
     measuredvbat *= 2;    // we divided by 2, so multiply back
     measuredvbat *= 3.3;  // Multiply by 3.3V, our reference voltage
     measuredvbat /= 1024; // convert to voltage
     Serial.print("VBat: ");
     Serial.println(measuredvbat);
-    voltageTimer = millis();
+    voltageTimer = currentTime;
   }
 
-
-if(millis() - transmitTimer > delayVal) {
-  
-
-  //TRANSMITER
-  if (digitalRead(kButtonOnePin))
+  if (currentTime - transmitTimer > kDelayVal)
   {
 
-    Serial.println("Button A pressed!");
-
-    char radiopacket[20] = "Button #";
-    radiopacket[8] = 'A';
-    radiopacket[9] = 0;
-
-    Serial.print("Sending ");
-    Serial.println(radiopacket);
-    rf69.send((uint8_t *)radiopacket, strlen(radiopacket));
-    rf69.waitPacketSent();
-
-    pixels.setPixelColor(0, pixels.Color(150, 0, 100)); // Purple
-    pixels.show();
-    transmitTimer = millis();
-  }
-  else if (digitalRead(kButtonTwoPin))
-  {
-    Serial.println("Button B pressed!");
-
-    char radiopacket[20] = "Button #";
-    radiopacket[8] = 'B';
-    radiopacket[9] = 0;
-
-    Serial.print("Sending ");
-    Serial.println(radiopacket);
-    rf69.send((uint8_t *)radiopacket, strlen(radiopacket));
-    rf69.waitPacketSent();
-
-    pixels.setPixelColor(0, pixels.Color(0, 66, 37)); // British Racing Green
-    pixels.show();
-    transmitTimer = millis();
-  }
-  else if (digitalRead(kButtonThreePin))
-  {
-    Serial.println("Button C pressed!");
-
-    char radiopacket[20] = "Button #";
-    radiopacket[8] = 'C';
-    radiopacket[9] = 0;
-
-    Serial.print("Sending ");
-    Serial.println(radiopacket);
-    rf69.send((uint8_t *)radiopacket, strlen(radiopacket));
-    rf69.waitPacketSent();
-
-    pixels.setPixelColor(0, pixels.Color(255, 246, 0)); // Yellow.
-    pixels.show();
-    transmitTimer = millis();
-  }
-  else if (digitalRead(kButtonFourPin))
-  {
-    Serial.println("Button D pressed!");
-
-    char radiopacket[20] = "Button #";
-    radiopacket[8] = 'D';
-    radiopacket[9] = 0;
-
-    Serial.print("Sending ");
-    Serial.println(radiopacket);
-    rf69.send((uint8_t *)radiopacket, strlen(radiopacket));
-    rf69.waitPacketSent();
-
-    pixels.setPixelColor(0, pixels.Color(42, 82, 190)); // Moderately bright green color.
-    pixels.show();
-    transmitTimer = millis();
-  }
-  else
-  {
-
-    pixels.setPixelColor(0, pixels.Color(0, 0, 0)); // OFF
-    pixels.show();
-  }
-}
-
-
-  //RECIEVE
-  if (rf69.waitAvailableTimeout(100) && millis() - receiveTimer > delayVal)
-  {
-    // Should be a message for us now
-    uint8_t buf[RH_RF69_MAX_MESSAGE_LEN];
-    uint8_t len = sizeof(buf);
-
-    if (!rf69.recv(buf, &len))
+    //TRANSMITER
+    if (digitalRead(kButtonOnePin))
     {
-      Serial.println("Receive failed");
-      return;
+      isInSleep = false;
+
+      Serial.println("Button A pressed!");
+      char radiopacket[20] = "Button #";
+      radiopacket[8] = 'A';
+      radiopacket[9] = 0;
+
+      Serial.print("Sending ");
+      Serial.println(radiopacket);
+      rf69.send((uint8_t *)radiopacket, strlen(radiopacket));
+      rf69.waitPacketSent();
+
+      pixels.setPixelColor(0, pixels.Color(150, 0, 100)); // Purple
+      pixels.show();
+      transmitTimer = currentTime;
     }
+    else if (digitalRead(kButtonTwoPin))
+    {
+      isInSleep = false;
+      Serial.println("Button B pressed!");
 
-    rf69.printBuffer("Received: ", buf, len);
-    buf[len] = 0;
+      char radiopacket[20] = "Button #";
+      radiopacket[8] = 'B';
+      radiopacket[9] = 0;
 
-    Serial.print("Got: ");
-    Serial.println((char *)buf);
-    if ((String((char *)buf)).indexOf("A") != -1)
-    {
-      pixels.setPixelColor(1, pixels.Color(150, 0, 100)); // Purple
-      pixels.show();                                      // This sends the updated pixel color to the hardware.
-      receiveTimer = millis();
+      Serial.print("Sending ");
+      Serial.println(radiopacket);
+      rf69.send((uint8_t *)radiopacket, strlen(radiopacket));
+      rf69.waitPacketSent();
+
+      pixels.setPixelColor(0, pixels.Color(0, 66, 37)); // British Racing Green
+      pixels.show();
+      transmitTimer = currentTime;
     }
-    else if ((String((char *)buf)).lastIndexOf("B") > 2)
+    else if (digitalRead(kButtonThreePin))
     {
-      pixels.setPixelColor(1, pixels.Color(0, 66, 37)); // British Racing Green
-      pixels.show();                                    // This sends the updated pixel color to the hardware.
-      receiveTimer = millis();
+      isInSleep = false;
+      Serial.println("Button C pressed!");
+
+      char radiopacket[20] = "Button #";
+      radiopacket[8] = 'C';
+      radiopacket[9] = 0;
+
+      Serial.print("Sending ");
+      Serial.println(radiopacket);
+      rf69.send((uint8_t *)radiopacket, strlen(radiopacket));
+      rf69.waitPacketSent();
+
+      pixels.setPixelColor(0, pixels.Color(255, 246, 0)); // Yellow.
+      pixels.show();
+      transmitTimer = currentTime;
     }
-    else if ((String((char *)buf)).indexOf("C") != -1)
+    else if (digitalRead(kButtonFourPin))
     {
-      pixels.setPixelColor(1, pixels.Color(255, 246, 0)); // Yellow.
-      pixels.show();                                      // This sends the updated pixel color to the hardware.
-      receiveTimer = millis();
-    }
-    else if ((String((char *)buf)).indexOf("D") != -1)
-    {
-      pixels.setPixelColor(1, pixels.Color(42, 82, 190)); // Moderately bright green color.
-      pixels.show();                                      // This sends the updated pixel color to the hardware.
-      receiveTimer = millis();
+      isInSleep = false;
+      Serial.println("Button D pressed!");
+
+      char radiopacket[20] = "Button #";
+      radiopacket[8] = 'D';
+      radiopacket[9] = 0;
+
+      Serial.print("Sending ");
+      Serial.println(radiopacket);
+      rf69.send((uint8_t *)radiopacket, strlen(radiopacket));
+      rf69.waitPacketSent();
+
+      pixels.setPixelColor(0, pixels.Color(42, 82, 190)); // Moderately bright green color.
+      pixels.show();
+      transmitTimer = currentTime;
     }
     else
     {
-      pixels.setPixelColor(1, pixels.Color(0, 0, 0)); // OFF
-      pixels.show();                                  // This sends the updated pixel color to the hardware.
+
+      pixels.setPixelColor(0, pixels.Color(0, 0, 0)); // OFF
+      pixels.show();
     }
-    Serial.print("RSSI: ");
-    Serial.println(rf69.lastRssi(), DEC);
   }
 
-  
+  //RECIEVE
+  if (currentTime - receiveTimer > kDelayVal && !(isInSleep))
+  {
+    if (rf69.waitAvailableTimeout(100))
+    {
+      // Should be a message for us now
+      uint8_t buf[RH_RF69_MAX_MESSAGE_LEN];
+      uint8_t len = sizeof(buf);
+
+      if (!rf69.recv(buf, &len))
+      {
+        Serial.println("Receive failed");
+        return;
+      }
+
+      rf69.printBuffer("Received: ", buf, len);
+      buf[len] = 0;
+
+      Serial.print("Got: ");
+      Serial.println((char *)buf);
+      if ((String((char *)buf)).indexOf("A") != -1)
+      {
+        pixels.setPixelColor(1, pixels.Color(150, 0, 100)); // Purple
+        pixels.show();                                      // This sends the updated pixel color to the hardware.
+        receiveTimer = currentTime;
+      }
+      else if ((String((char *)buf)).lastIndexOf("B") > 2)
+      {
+        pixels.setPixelColor(1, pixels.Color(0, 66, 37)); // British Racing Green
+        pixels.show();                                    // This sends the updated pixel color to the hardware.
+        receiveTimer = currentTime;
+      }
+      else if ((String((char *)buf)).indexOf("C") != -1)
+      {
+        pixels.setPixelColor(1, pixels.Color(255, 246, 0)); // Yellow.
+        pixels.show();                                      // This sends the updated pixel color to the hardware.
+        receiveTimer = currentTime;
+      }
+      else if ((String((char *)buf)).indexOf("D") != -1)
+      {
+        pixels.setPixelColor(1, pixels.Color(42, 82, 190)); // Moderately bright green color.
+        pixels.show();                                      // This sends the updated pixel color to the hardware.
+        receiveTimer = currentTime;
+      }
+      else
+      {
+        pixels.setPixelColor(1, pixels.Color(0, 0, 0)); // OFF
+        pixels.show();                                  // This sends the updated pixel color to the hardware.
+      }
+      Serial.print("RSSI: ");
+      Serial.println(rf69.lastRssi(), DEC);
+    }
+  }
+
+  if (currentTime - max(receiveTimer, transmitTimer) > kSleepDelay)
+  {
+    pixels.setPixelColor(1, pixels.Color(0, 0, 0)); // OFF
+    pixels.show();                                  // This sends the updated pixel color to the hardware.
+  }
+
+  if (currentTime - max(receiveTimer, transmitTimer) > kRadioSleepDelay)
+  {
+    rf69.sleep();
+    isInSleep = true;
+  }
 }
